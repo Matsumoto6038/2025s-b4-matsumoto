@@ -193,8 +193,5 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# テストファイルを無視する
-/test
-
 # macOS specific files
 .DS_Store
