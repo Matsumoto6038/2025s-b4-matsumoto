@@ -71,6 +71,25 @@ def inner_product(mps_1,mps_2):
 
     return (value.reshape(1))
 
+""" 初期状態とユニタリの定義 """
+def plus(L):
+    mps = []
+    for i in range(L):
+        mps.append(np.array([1/np.sqrt(2),1/np.sqrt(2)]).reshape(1,2,1))
+    return mps
+
+def all_up(L):
+    mps = []
+    for i in range(L):
+        mps.append(np.array([1,0]).reshape(1,2,1))
+    return mps
+
+def all_down(L):
+    mps = []
+    for i in range(L):
+        mps.append(np.array([0,1]).reshape(1,2,1))
+    return mps
+
 # MPSのbond dimensionを取得する関数
 def get_bondinfo(mps):
     L = len(mps)

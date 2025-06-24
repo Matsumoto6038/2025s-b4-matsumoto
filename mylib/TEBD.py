@@ -7,28 +7,6 @@ from mylib import TDVP, MPS
 # mps > D,L > maxbond > h > J > T,dt,n_steps > cutoff > operator
 # 左bond-物理-右bondの順に足を並べる
 
-""" 初期状態とユニタリの定義 """
-
-def plus(L):
-    mps = []
-    for i in range(L):
-        mps.append(np.array([1/np.sqrt(2),1/np.sqrt(2)]).reshape(1,2,1))
-    D = [1] * (L + 1)  # ボンド次元のリスト
-    return mps, D
-
-def all_up(L):
-    mps = []
-    for i in range(L):
-        mps.append(np.array([1,0]).reshape(1,2,1))
-    D = [1] * (L + 1)  # ボンド次元のリスト
-    return mps, D
-
-def all_down(L):
-    mps = []
-    for i in range(L):
-        mps.append(np.array([0,1]).reshape(1,2,1))
-    D = [1] * (L + 1)  # ボンド次元のリスト
-    return mps, D
 
 def U_X(h,dt):
     sigma_x = np.array([[0,1],[1,0]])
