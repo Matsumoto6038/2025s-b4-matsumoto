@@ -3,19 +3,6 @@ import scipy as sp
 import time
 from mylib import TEBD 
 
-""" TDVPの注意点 """
-
-# L > mps > D > maxbond > h > J > T,dt,n_steps > cutoff > operator
-# 0番目から数える。
-
-""" 足の順番についての注意 """
-# mpoの足の順番は、左下上右の順。
-# 縮約はできるだけ以下のルールでかく。
-# ボンドはi,j,k,l,,,で、物理系の足はa,b,c,d,,,で書く。
-# np.einsum('iabj,kbl->ikajl',mpo[i],mps[i]) bra-operator-ketの順番で書く
-# np.einsum('iabj,jcdk->iacbdk',mpo[i],mpo[i+1])
-# np.einsum('iaj,kabl->ikbjl',mps[i].conj().T,mpo[i])
-
 """ TDVPの関数群 """
 
 # Enviroment
