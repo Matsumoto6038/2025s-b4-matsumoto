@@ -146,35 +146,6 @@ def update_left_env(mps, mpo, Left, i):
     Left[i+1] = np.einsum('acbdj,bdl->aclj', Left[i+1], mps[i])
     Left[i+1] = np.einsum('ack,aclj->klj', mps[i].conj(), Left[i+1])
 
-# 有効ハミルトニアン H_eff
-def H_eff1(mpo, Left, Right, l):
-    # H_{eff}^{l}
-    if l < 1 or l >= len(mpo)-1:
-        raise ValueError("l must be in the range [1, len(mpo) - 2].")
-    # L_{l-1}, mpo[l], R_{l+1}で構成される。
-    # (Left[l], mpo[l], Right[l-1])
-    # print(Left[l].shape, mpo[l].shape, Right[l-1].shape)
-    eff = np.einsum('abi,icdj->acbdj', Left[l], mpo[l])
-    eff = np.einsum('acbdj,jef->acebdf', eff, Right[l-1])
-    row = np.prod(eff.shape[:3])
-    col = np.prod(eff.shape[3:])
-    eff = eff.reshape(row, col)
-    return eff
-
-def H_eff2(mpo, Left, Right, l):
-    # l,l+1に作用するので、
-    if l < 0 or l >= len(mpo) - 1:
-        raise ValueError("l must be in the range [0, len(mpo) - 2].")
-    # L_{l-1}, mpo[l], mpo[l+1], R_{l+2}で構成される。
-    # (Left[l], mpo[l], mpo[l+1], Right[l])
-    eff = np.einsum('abi,icdj->acbdj', Left[l], mpo[l])
-    eff = np.einsum('acbdj,jefk->acebdfk', eff, mpo[l+1])
-    eff = np.einsum('acebdfk,kgh->acegbdfh', eff, Right[l])
-    row = np.prod(eff.shape[:4])
-    col = np.prod(eff.shape[4:])
-    eff = eff.reshape(row, col)
-    return eff
-
 # l->rとr->lをまとめて行う
 def sweep(
     mps: list, 
@@ -194,11 +165,14 @@ def sweep(
         T = np.einsum('iaj,jbk->iabk',mps[i],mps[i+1])
         shape = T.shape # 足の情報
         T = T.reshape(np.prod(shape))
-        H_eff = H_eff2(mpo, Left, Right, i) #T_i,{i+1}に作用する演算子(行列)
-        # S_eigh, U_eigh = np.linalg.eigh(H_eff)
-        # U_H = U_eigh @ np.diag(np.exp(alpha * S_eigh)) @ U_eigh.conj().T
-        # T = U_H @ T
-        T = sp.sparse.linalg.expm_multiply(alpha * H_eff, T)
+        """ sparse """
+        Heff2 = make_Heff2(mpo, Left, Right, alpha, i)
+        Heff = sp.sparse.linalg.LinearOperator(
+            shape = (np.prod(shape), np.prod(shape)),
+            matvec = Heff2,
+            rmatvec = Heff2  # 省略可だけどあると安全 
+        )
+        T = sp.sparse.linalg.expm_multiply(Heff, T)
         T = T.reshape(shape[0]*shape[1], shape[2]*shape[3])
         U_svd, S_svd, Vh_svd = np.linalg.svd(T, full_matrices=False)
         # トランケーション
@@ -216,22 +190,28 @@ def sweep(
         if i != L - 2:
             update_left_env(mps, mpo, Left, i)
             mps[i+1] = mps[i+1].reshape(idx*shape[2]*shape[3])
-            H_eff = H_eff1(mpo, Left, Right, i+1)
-            # S_eigh, U_eigh = np.linalg.eigh(H_eff)
-            # U_H = U_eigh @ np.diag(np.exp(-alpha * S_eigh)) @ U_eigh.conj().T
-            # mps[i+1] = U_H @ mps[i+1]
-            mps[i+1] = sp.sparse.linalg.expm_multiply(-alpha * H_eff, mps[i+1])
+            """ sparse """
+            Heff1 = make_Heff1(mpo, Left, Right, -alpha, i+1)
+            Heff = sp.sparse.linalg.LinearOperator(
+                shape = (np.prod(idx*shape[2]*shape[3]), np.prod(idx*shape[2]*shape[3])),
+                matvec = Heff1,
+                rmatvec = Heff1  # 省略可だけどあると安全 
+            )
+            mps[i+1] = sp.sparse.linalg.expm_multiply(Heff, mps[i+1])
             mps[i+1] = mps[i+1].reshape(idx, shape[2], shape[3])
             
     for i in range(L-1, 0, -1):
         T = np.einsum('iaj,jbk->iabk', mps[i-1], mps[i])
         shape = T.shape  # 足の情報
         T = T.reshape(np.prod(shape))
-        H_eff = H_eff2(mpo, Left, Right, i-1)
-        # S_eigh, U_eigh = np.linalg.eigh(H_eff)
-        # U_H = U_eigh @ np.diag(np.exp(alpha * S_eigh)) @ U_eigh.conj().T
-        # T = U_H @ T
-        T = sp.sparse.linalg.expm_multiply(alpha * H_eff, T)
+        """ sparse """
+        Heff2 = make_Heff2(mpo, Left, Right, alpha, i-1)
+        Heff = sp.sparse.linalg.LinearOperator(
+            shape = (np.prod(shape), np.prod(shape)),
+            matvec = Heff2,
+            rmatvec = Heff2  # 省略可だけどあると安全 
+        )
+        T = sp.sparse.linalg.expm_multiply(Heff, T)
         T = T.reshape(shape[0]*shape[1], shape[2]*shape[3])
         U_svd, S_svd, Vh_svd = np.linalg.svd(T, full_matrices=False)
         # トランケーション
@@ -249,11 +229,14 @@ def sweep(
         if i != 1:
             update_right_env(mps, mpo, Right, i)
             mps[i-1] = mps[i-1].reshape(shape[0]*shape[1]*idx)
-            H_eff = H_eff1(mpo, Left, Right, i-1)
-            # S_eigh, U_eigh = np.linalg.eigh(H_eff)
-            # U_H = U_eigh @ np.diag(np.exp(-alpha * S_eigh)) @ U_eigh.conj().T
-            # mps[i-1] = U_H @ mps[i-1]
-            mps[i-1] = sp.sparse.linalg.expm_multiply(-alpha * H_eff, mps[i-1])
+            """ sparse """
+            Heff1 = make_Heff1(mpo, Left, Right, -alpha, i-1)
+            Heff = sp.sparse.linalg.LinearOperator(
+                shape = (np.prod(idx*shape[0]*shape[1]), np.prod(idx*shape[0]*shape[1])),
+                matvec = Heff1,
+                rmatvec = Heff1  # 省略可だけどあると安全 
+            )
+            mps[i-1] = sp.sparse.linalg.expm_multiply(Heff, mps[i-1])
             mps[i-1] = mps[i-1].reshape(shape[0], shape[1], idx)
 
 def tdvp(
@@ -284,3 +267,36 @@ def progress(i, n_steps):
     print(f"進捗状況: {percent:.2f}%", end="\r")
     time.sleep(0.00000001)
 
+# 有効ハミルトニアンH_effを作る
+def make_Heff2(mpo, Left, Right, alpha, l):
+    # l,l+1に作用するので、
+    if l < 0 or l >= len(mpo) - 1:
+        raise ValueError("l must be in the range [0, len(mpo) - 2].")
+    # L_{l-1}, mpo[l], mpo[l+1], R_{l+2}で構成される。
+    # (Left[l], mpo[l], mpo[l+1], Right[l])
+    shape = (Left[l].shape[1],mpo[l].shape[2],mpo[l+1].shape[2],Right[l].shape[2])
+    def Heff2(v):
+        v = v.reshape(shape)
+        v = np.einsum('cik,iabj->cabjk', Left[l], v)
+        v = np.einsum('cabjk,kdal->cdbjl', v, mpo[l])
+        v = np.einsum('cdbjl,lebm->cdejm', v, mpo[l+1])
+        v = np.einsum('cdejm,mfj->cdef', v, Right[l])
+        v = alpha * v.reshape(np.prod(shape))
+        return v
+    return Heff2
+
+def make_Heff1(mpo, Left, Right, alpha, l):
+    # H_{eff}^{l}
+    if l < 1 or l >= len(mpo)-1:
+        raise ValueError("l must be in the range [1, len(mpo) - 2].")
+    # L_{l-1}, mpo[l], R_{l+1}で構成される。
+    # (Left[l], mpo[l], Right[l-1])
+    shape = (Left[l].shape[1], mpo[l].shape[2], Right[l-1].shape[2])
+    def Heff1(v):
+        v = v.reshape(shape)
+        v = np.einsum('bik,iaj->bajk', Left[l], v)
+        v = np.einsum('bajk,kcal->bcjl', v, mpo[l])
+        v = np.einsum('bcjl,ldj->bcd', v, Right[l-1])
+        v = alpha * v.reshape(np.prod(shape))
+        return v
+    return Heff1
