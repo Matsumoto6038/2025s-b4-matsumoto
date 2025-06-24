@@ -16,59 +16,6 @@ from mylib import TEBD
 # np.einsum('iabj,jcdk->iacbdk',mpo[i],mpo[i+1])
 # np.einsum('iaj,kabl->ikbjl',mps[i].conj().T,mpo[i])
 
-""" 状態や演算子の準備 """
-
-def mpo_ising_transverse(L,h,J):
-    mpo = []
-    sigma_z = np.array([[1, 0], [0, -1]])
-    sigma_x = np.array([[0, 1], [1, 0]])
-    I = np.eye(2)
-    zero = np.zeros((2, 2))
-    O = np.array([[h*sigma_x, J*sigma_z, I]]).transpose(0,2,3,1)
-    mpo.append(O)  # mpo[0]
-    for i in range(1, L-1):
-        O = np.array([[I,zero,zero],[sigma_z,zero,zero],[h*sigma_x,J*sigma_z,I]]).transpose(0,2,3,1)
-        mpo.append(O)
-    O = np.array([[I],[sigma_z],[h*sigma_x]]).transpose(0,2,3,1)
-    mpo.append(O)  # mpo[L-1]
-    return mpo
-
-# MPSのbond dimensionを取得する関数
-def get_bondinfo(mps):
-    L = len(mps)
-    D = []
-    D.append(1)
-    for i in range(L):
-        D.append(mps[i].shape[2])
-    return D
-
-def right_canonical(mps):
-    # mpsをright canonical form に変形する
-    L = len(mps)
-    D = get_bondinfo(mps)
-    # LQ分解
-    for i in range(L-1, 0, -1):
-        mps[i] = mps[i].reshape(D[i],D[i+1]*2)
-        q, r = np.linalg.qr(mps[i].T)
-        mps[i] = q.T.reshape(D[i],2,D[i+1])
-        mps[i-1] = np.einsum('ijk,kl->ijl', mps[i-1], r.T)
-    # 規格化
-    mps[0] = mps[0] / np.sqrt(np.einsum('ijk,ijk->',mps[0] , mps[0].conj()))
-    return mps
-
-def check_right_canonical(mps):
-    # mpsがright canonical formになっているか確認する
-    L = len(mps)
-    D = get_bondinfo(mps)
-    for i in range(1,L):
-        A = mps[i].reshape(D[i],D[i+1]*2)
-        # print(A @ A.conj().T)
-        val = np.linalg.norm(np.eye(D[i]) - A @ A.conj().T)
-        # print(val)
-        if val > 1e-10:
-            return False
-    return True
-
 """ TDVPの関数群 """
 
 # Enviroment
