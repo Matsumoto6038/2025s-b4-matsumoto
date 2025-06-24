@@ -51,7 +51,7 @@ M_x = TEBD.tebd2(mps, 1, 1, 10, 1000, output_type = 'M_x')
 T = np.linspace(0, 10, 1001)
 plt.plot(T, M_x, label='tebd2_ver2 M_x')
 # mps, D = TEBD.all_up(L)
-T, M_x = TEBD.tebd1(mps, 1, 1, 10, 100, operator='x')
+M_x = TEBD.tebd1(mps, 1, 1, 10, 1000, output_type= 'M_x')
 plt.plot(T, M_x, label='tebd1 M_x')
 
 """ M_zの時間依存性テスト """

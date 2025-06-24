@@ -167,32 +167,34 @@ def tebd1(
     n_steps: int,               # 時間ステップ数
     maxbond: int = 100,         # 最大ボンド次元
     cutoff: float = 1e-10,      # SVDの閾値
-    operator: str = 'z'         # 演算子の種類 ('z' or 'x')
+    output_type: str = 'energy',# 演算子の種類 ('z' or 'x')
+    clone = False                # mpsをコピーするかどうか
 ):  
-    D = MPS.get_bondinfo(mps)
+    mps_copy = copy.deepcopy(mps) if clone else mps
+    D = MPS.get_bondinfo(mps_copy)
     dt = T / n_steps
-    Time = []
-    Magnetization = []
-    Time.append(0)
-    Magnetization.append(np.sum(MPS.expval(operator, mps, 1)))
+    mpo = MPS.mpo_ising_transverse(len(mps_copy), h, J)
+    
+    Result = []
+    exp_func = output(output_type, mpo)
+    Result.append(exp_func(mps_copy))
+    
     for step in range(n_steps): 
         if step % (n_steps // 10) == 0:
             cleaned = [int(x) for x in D]
             #print(cleaned)
         onsite(mps, h, dt)
-        apply_bond_layer(mps, h, J, dt, 'ZZ', 'even', 'lr', maxbond, cutoff)
-        apply_bond_layer(mps, h, J, dt, 'ZZ', 'odd', 'rl', maxbond, cutoff)
+        apply_bond_layer(mps_copy, h, J, dt, 'ZZ', 'even', 'lr', maxbond, cutoff)
+        apply_bond_layer(mps_copy, h, J, dt, 'ZZ', 'odd', 'rl', maxbond, cutoff)
         
-        Time.append((step+1) * dt)
-        M = np.sum(MPS.expval(operator, mps, 1))
-        Magnetization.append(M)
+        Result.append(exp_func(mps_copy))
 
         # # 進捗状況の表示
         percent = (step + 1) / n_steps * 100
         print(f"進捗状況: {percent:.2f}%", end="\r")
         time.sleep(0.00000001)
         
-    return Time, Magnetization
+    return Result
 
 def tebd2(
     mps,
