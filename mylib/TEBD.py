@@ -7,7 +7,6 @@ from mylib import TDVP, MPS
 # mps > D,L > maxbond > h > J > T,dt,n_steps > cutoff > operator
 # 左bond-物理-右bondの順に足を並べる
 
-
 def U_X(h,dt):
     sigma_x = np.array([[0,1],[1,0]])
     S, U = np.linalg.eig(sigma_x)

@@ -33,34 +33,6 @@ def mpo_ising_transverse(L,h,J):
     mpo.append(O)  # mpo[L-1]
     return mpo
 
-def GHZ_unnormalized(L):
-    mps = []
-    ket_0 = np.array([1,0])
-    ket_1 = np.array([0,1])
-    zero = np.array([0,0])
-    A = np.array([[ket_0,ket_1]]).transpose(0,2,1)  
-    mps.append(A)  
-    for i in range(1,L-1):
-        A = np.array([[ket_0,zero],[zero,ket_1]]).transpose(0,2,1)
-        mps.append(A)
-    A = np.array([[ket_0],[ket_1]]).transpose(0,2,1)
-    mps.append(A)  # 最後のサイト
-    return mps
-
-def mps_random(L, D):
-    if len(D) != L + 1:
-        raise ValueError("Length of D must be L + 1.")
-    if D[0] != 1 or D[L] != 1:
-        raise ValueError("First and last bond dimensions must be 1.")
-    for i in range(1, L):
-        if D[i] > (2 ** min(i, L-i)):
-            raise ValueError("Bond dimensions must not exceed 2^min(i, L-1-i).")
-    mps = []
-    for i in range(L):
-        A = np.random.rand(D[i], 2, D[i+1])+ 1j * np.random.rand(D[i], 2, D[i+1])
-        mps.append(A)
-    return mps
-
 # MPSのbond dimensionを取得する関数
 def get_bondinfo(mps):
     L = len(mps)
