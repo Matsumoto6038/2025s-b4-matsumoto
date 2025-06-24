@@ -1,7 +1,7 @@
 import numpy as np
 import time
 import copy
-from mylib import TDVP
+from mylib import TDVP, MPS
 
 # 変数の並びのルール
 # mps > D,L > maxbond > h > J > T,dt,n_steps > cutoff > operator
@@ -231,17 +231,17 @@ def tebd1(
         
     return Time, Magnetization
 
-def tebd2_ver2(
+def tebd2(
     mps,
-    D: list,                    # 各サイトのボンド次元のリスト
-    maxbond: int,               # 最大ボンド次元
     h: float,                   # 磁場の強さ
     J: float,                   # 相互作用定数
     T: float,                   # 時間
     n_steps: int,               # 時間ステップ数
+    maxbond: int = 100,         # 最大ボンド次元
     cutoff: float = 1e-10,      # SVDの閾値
     operator: str = 'z'         # 演算子の種類 ('z' or 'x')
 ):  
+    D = MPS.get_bondinfo(mps)
     mpo = TDVP.mpo_ising_transverse(len(mps), h, J)
     dt = T / n_steps
     Time = []
@@ -270,54 +270,6 @@ def tebd2_ver2(
         time.sleep(0.00000001)
         
     return Time, Magnetization, Energy
-    
-
-# オンサイトをbondに吸収させた
-def tebd2(
-    mps,
-    D: list,                    # 各サイトのボンド次元のリスト
-    maxbond: int,               # 最大ボンド次元
-    h: float,                   # 磁場の強さ
-    J: float,                   # 相互作用定数
-    T: float,                   # 時間
-    n_steps: int,               # 時間ステップ数
-    cutoff: float = 1e-10,      # SVDの閾値
-    operator: str = 'z'         # 演算子の種類 ('z' or 'x')
-):  
-    length = len(mps)
-    mpo = TDVP.mpo_ising_transverse(length, h, J)
-    dt = T / n_steps
-    Time = []
-    Magnetization = []
-    corr = []
-    Energy = []
-    Time.append(0)
-    Magnetization.append(np.sum(expval(operator, mps, 1)))
-    corr.append(correlation(mps, 0, length-1, operator))
-    Energy.append(energy(mps, mpo))  # 初期エネルギーの計算
-
-    apply_bond_layer(
-        mps, D, maxbond, h, J, dt/2, 'ZX', 'even', 'lr', cutoff)
-    for step in range(n_steps-1):
-        apply_bond_layer(mps, D, maxbond, h, J, dt, 'ZZ', 'odd', 'rl', cutoff)
-        apply_bond_layer(mps, D, maxbond, h, J, dt, 'ZX', 'even', 'lr', cutoff)
-        Time.append((step + 1) * dt)
-        Magnetization.append(np.sum(expval(operator, mps, length-2)))
-        corr.append(correlation(mps, 0, length-1, operator))
-        Energy.append(energy(mps, mpo))  # エネルギーの表示
-        # # 進捗状況の表示
-        percent = (step + 2) / n_steps * 100
-        print(f"進捗状況: {percent:.2f}%", end="\r")
-        time.sleep(0.00000001)
-        
-        
-    apply_bond_layer(mps, D, maxbond, h, J, dt/2, 'ZZ', 'odd', 'rl', cutoff)
-    Time.append(T)
-    Magnetization.append(np.sum(expval(operator, mps, 1)))
-    corr.append(correlation(mps, 0, length-1, operator))
-    Energy.append(energy(mps, mpo))  
-
-    return Time, Magnetization, corr, Energy
 
 """ 物理量の計算 """
 

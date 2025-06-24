@@ -71,3 +71,11 @@ def inner_product(mps_1,mps_2):
 
     return (value.reshape(1))
 
+# MPSのbond dimensionを取得する関数
+def get_bondinfo(mps):
+    L = len(mps)
+    D = []
+    D.append(1)
+    for i in range(L):
+        D.append(mps[i].shape[2])
+    return D
