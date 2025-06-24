@@ -1,7 +1,8 @@
 import numpy as np
 import scipy as sp
 import time
-from mylib import TEBD 
+from mylib import MPS
+import copy
 
 """ TDVPの関数群 """
 
@@ -151,21 +152,24 @@ def tdvp(
     maxbond: int,
     T: float,
     n_steps: int,
-):
-    Left = initial_left_env(len(mps))
-    Right = initial_right_env(mps, mpo)
+    output_type: str = 'M_x',
+    clone = False
+):  
+    mps_copy = copy.deepcopy(mps) if clone else mps
+    Left = initial_left_env(len(mps_copy))
+    Right = initial_right_env(mps_copy, mpo)
     dt = T / n_steps
-    Time = []
-    Time.append(0)
-    Magnetization = []
-    Magnetization.append(np.sum(TEBD.expval('x', mps, 0)))
+    Result = []
+    exp_func = MPS.output(output_type, mpo, center=0)
+    
+    Result.append(exp_func(mps_copy))  # 初期状態の演算子の期待値を計算
+    
     for i in range(n_steps):
-        sweep(mps, mpo, maxbond, dt, Left, Right)
-        Time.append((i+1) * dt)
-        Magnetization.append(np.sum(TEBD.expval('x', mps, 0)))
+        sweep(mps_copy, mpo, maxbond, dt, Left, Right)
+        Result.append(exp_func(mps_copy))  # 各ステップでの演算子の期待値を計算
         progress(i, n_steps)
 
-    return Time, Magnetization
+    return Result
 
 def progress(i, n_steps):
     # 進捗状況の表示

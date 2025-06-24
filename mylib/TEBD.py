@@ -176,7 +176,7 @@ def tebd1(
     mpo = MPS.mpo_ising_transverse(len(mps_copy), h, J)
     
     Result = []
-    exp_func = output(output_type, mpo)
+    exp_func = MPS.output(output_type, mpo)
     Result.append(exp_func(mps_copy))
     
     for step in range(n_steps): 
@@ -212,7 +212,7 @@ def tebd2(
     mpo = MPS.mpo_ising_transverse(len(mps_copy), h, J)
     dt = T / n_steps
     
-    exp_func = output(output_type, mpo)
+    exp_func = MPS.output(output_type, mpo)
     Result = []
     Result.append(exp_func(mps_copy))
     
@@ -230,28 +230,3 @@ def tebd2(
         time.sleep(0.00000001)
         
     return Result
-
-# tebdの出力を選択する関数
-def output(
-    output_type : str,
-    mpo : list,
-    ):
-    if output_type == 'energy':
-        def energy(mps):
-            result = MPS.energy(mps, mpo)
-            return result
-        return energy
-    elif output_type == 'M_x':
-        def M_x(mps,center=1):
-            result = np.sum(MPS.expval('x', mps, center))
-            return result
-        return M_x
-    elif output_type == 'M_z':
-        def M_z(mps,center=1):
-            result = np.sum(MPS.expval('z', mps, center))
-            return result
-        return M_z
-    else:
-        raise ValueError(f"Output type '{output_type}' is not supported.")
-            
-    

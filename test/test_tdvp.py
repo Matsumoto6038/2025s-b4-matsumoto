@@ -5,8 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
-from mylib import TDVP
-from mylib import TEBD
+from mylib import TDVP, TEBD, MPS
 import time
 
 """ mpo_ising_transverseのテスト """
@@ -84,19 +83,21 @@ import time
 
 """ TDVPのテスト """
 L = 10
-mps,_ = TEBD.all_up(L)
-mpo = TDVP.mpo_ising_transverse(L, 1, 1)
+mps = MPS.all_up(L)
+mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
 start = time.time()
-T_1, M_1 = TDVP.tdvp(mps, mpo, 32, 2, 20)
+n_steps = 40
+T = 10
+Time = np.linspace(0, T, n_steps + 1)
+M_x = TDVP.tdvp(mps, mpo, maxbond=32, T=T, n_steps=n_steps, clone = True)
 end = time.time()
 print(f"TDVP: {end - start:.2f} seconds")
-plt.plot(T_1, M_1, label='TDVP')
+plt.plot(Time, M_x, label='TDVP')
 
 """ TEBDとの比較 """
-mps, D = TEBD.all_up(L)
 start = time.time()
-T_2, M_2, _ = TEBD.tebd2_ver2(mps, D, 100, 1, 1, 2, 20, 1e-10, 'x')
-plt.plot(T_2, M_2, label='TEBD')
+M_x = TEBD.tebd2(mps, h=1, J=1, T=T, n_steps=n_steps, output_type='M_x')
+plt.plot(Time, M_x, label='TEBD')
 end = time.time()
 print(f"TEBD: {end - start:.2f} seconds")
 

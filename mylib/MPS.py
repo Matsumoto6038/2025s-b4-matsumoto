@@ -266,3 +266,27 @@ def energy(mps, mpo):
     TDVP.update_left_env(mps, mpo, Left, 1)
     energy = np.einsum('abi,iab->',Left[2],Right[0])
     return -energy
+
+# 出力を選択する関数
+def output(
+    output_type : str,
+    mpo : list,
+    center : int = 1
+    ):
+    if output_type == 'energy':
+        def energy(mps):
+            result = energy(mps, mpo)
+            return result
+        return energy
+    elif output_type == 'M_x':
+        def M_x(mps):
+            result = np.sum(expval('x', mps, center))
+            return result
+        return M_x
+    elif output_type == 'M_z':
+        def M_z(mps):
+            result = np.sum(expval('z', mps, center))
+            return result
+        return M_z
+    else:
+        raise ValueError(f"Output type '{output_type}' is not supported.")
