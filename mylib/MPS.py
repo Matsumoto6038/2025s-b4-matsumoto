@@ -71,7 +71,7 @@ def inner_product(mps_1,mps_2):
 
     return (value.reshape(1))
 
-""" 初期状態とユニタリの定義 """
+""" mpsの初期状態を生成する関数群 """
 def plus(L):
     mps = []
     for i in range(L):
@@ -90,6 +90,36 @@ def all_down(L):
         mps.append(np.array([0,1]).reshape(1,2,1))
     return mps
 
+# 1/sqrt(2)(|0...0>+|1...1>)
+def GHZ_unnormalized(L):
+    mps = []
+    ket_0 = np.array([1,0])
+    ket_1 = np.array([0,1])
+    zero = np.array([0,0])
+    A = np.array([[ket_0,ket_1]]).transpose(0,2,1)  
+    mps.append(A)  
+    for i in range(1,L-1):
+        A = np.array([[ket_0,zero],[zero,ket_1]]).transpose(0,2,1)
+        mps.append(A)
+    A = np.array([[ket_0],[ket_1]]).transpose(0,2,1)
+    mps.append(A)  # 最後のサイト
+    return mps
+
+def mps_random(L, D):
+    # 与えられたbond dimension Dに基づいてランダムなMPSを生成
+    if len(D) != L + 1:
+        raise ValueError("Length of D must be L + 1.")
+    if D[0] != 1 or D[L] != 1:
+        raise ValueError("First and last bond dimensions must be 1.")
+    for i in range(1, L):
+        if D[i] > (2 ** min(i, L-i)):
+            raise ValueError("Bond dimensions must not exceed 2^min(i, L-1-i).")
+    mps = []
+    for i in range(L):
+        A = np.random.rand(D[i], 2, D[i+1])+ 1j * np.random.rand(D[i], 2, D[i+1])
+        mps.append(A)
+    return mps
+
 # MPSのbond dimensionを取得する関数
 def get_bondinfo(mps):
     L = len(mps)
@@ -98,3 +128,5 @@ def get_bondinfo(mps):
     for i in range(L):
         D.append(mps[i].shape[2])
     return D
+
+""" MPOの関数群 """
