@@ -84,8 +84,8 @@ import time
 """ TDVPのテスト """
 L = 10
 mps = MPS.all_up(L)
-# mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
-mpo = MPS.mpo_xxz(L, h=1, Delta=2)
+mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
+# mpo = MPS.mpo_xxz(L, h=1, Delta=2)
 start = time.time()
 n_steps = 100
 T = 10

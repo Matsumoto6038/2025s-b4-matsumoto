@@ -249,10 +249,10 @@ def output(
     center : int = 1
     ):
     if output_type == 'energy':
-        def energy(mps):
+        def energy_mps(mps):
             result = energy(mps, mpo)
             return result
-        return energy
+        return energy_mps
     elif output_type == 'M_x':
         def M_x(mps):
             result = np.sum(expval('x', mps, center))
