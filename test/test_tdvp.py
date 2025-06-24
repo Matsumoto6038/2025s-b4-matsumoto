@@ -84,22 +84,23 @@ import time
 """ TDVPのテスト """
 L = 10
 mps = MPS.all_up(L)
-mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
+# mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
+mpo = MPS.mpo_xxz(L, h=1, Delta=2)
 start = time.time()
-n_steps = 40
+n_steps = 100
 T = 10
 Time = np.linspace(0, T, n_steps + 1)
-M_x = TDVP.tdvp(mps, mpo, maxbond=32, T=T, n_steps=n_steps, clone = True)
+M_x = TDVP.tdvp(mps, mpo, maxbond=32, T=T, n_steps=n_steps, output_type='M_x', clone = True)
 end = time.time()
 print(f"TDVP: {end - start:.2f} seconds")
 plt.plot(Time, M_x, label='TDVP')
 
 """ TEBDとの比較 """
-start = time.time()
-M_x = TEBD.tebd2(mps, h=1, J=1, T=T, n_steps=n_steps, output_type='M_x')
-plt.plot(Time, M_x, label='TEBD')
-end = time.time()
-print(f"TEBD: {end - start:.2f} seconds")
+# start = time.time()
+# M_x = TEBD.tebd2(mps, h=1, J=1, T=T, n_steps=n_steps, output_type='M_x')
+# plt.plot(Time, M_x, label='TEBD')
+# end = time.time()
+# print(f"TEBD: {end - start:.2f} seconds")
 
 """ グラフの表示設定 """
 plt.xlabel('Time')

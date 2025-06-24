@@ -10,51 +10,6 @@ from mylib import TDVP,TEBD
 # np.einsum('iabj,jcdk->iacbdk',mpo[i],mpo[i+1])
 # np.einsum('iaj,kabl->ikbjl',mps[i].conj().T,mpo[i])
 
-def random_MPS_mixed_cannonical(phys_dim,bond_dim,L,center):
-    """ create a random MPS in mixed canonical form
-    Args:
-        phys_dim (int): physical dimension of the local Hilbert space
-        bond_dim (int): maximum bond dimension
-        L (int): number of sites in the MPS
-        center (int): index of the center site, must be in the range [0, L-1]
-    Returns:
-        A (list): list of tensors representing the MPS in mixed canonical form"""
-    if L < 2:
-        raise ValueError("L must be at least 2.")
-    # Check input parameters
-    if center < 0 or center >= L:
-        raise ValueError("Center must be in the range [0, L-1].")
-    A = []
-    Bond_list = []
-    for i in range(L-1):
-        Bond_list.append(min(bond_dim, phys_dim**(i+1), phys_dim**(L-i-1))) 
-    Q, _ = np.linalg.qr(np.random.rand(phys_dim, Bond_list[0]))
-    A.append(Q)  # (d,D[0])
-    for i in range(1, min(center+1, L-1)):
-        B = (np.random.rand(Bond_list[i-1], phys_dim, Bond_list[i])).reshape(Bond_list[i-1]*phys_dim, Bond_list[i])  # (D[i-1],d,D[i])
-        Q, _ = np.linalg.qr(B)
-        A.append(Q.reshape(Bond_list[i-1], phys_dim, Bond_list[i]))  # (D[i-1],d,D[i])
-    for i in range(center+1, L-1):
-        B = (np.random.rand(Bond_list[i-1], phys_dim, Bond_list[i])).reshape(Bond_list[i-1], phys_dim*Bond_list[i])  # (D[i-1],d,D[i])
-        Q, _ = np.linalg.qr(B.T)
-        A.append((Q.T).reshape(Bond_list[i-1], phys_dim, Bond_list[i]))
-    Q, _ = np.linalg.qr(np.random.rand(phys_dim, Bond_list[L-2]))
-    A.append(Q.T) # (D[L-2], d)
-
-    # insert the orthogonality center matrix
-    if center != (L-1):
-        S = np.random.rand(Bond_list[center])
-        S = S / np.linalg.norm(S) 
-        S = np.diag(S)  # make it diagonal
-        A[center] = np.tensordot(A[center], S, axes=([-1],[0])) 
-    else:
-        S = np.random.rand(Bond_list[L-2])
-        S = S / np.linalg.norm(S) 
-        S = np.diag(S) 
-        A[L-1] = np.tensordot(S, A[L-1], axes=([-1],[0]))
-        
-    return A, Bond_list
-
 """ mpsの初期状態を生成する関数群 """
 def plus(L):
     mps = []
@@ -128,6 +83,26 @@ def mpo_ising_transverse(L,h,J):
         mpo.append(O)
     O = np.array([[I],[sigma_z],[h*sigma_x]]).transpose(0,2,3,1)
     mpo.append(O)  # mpo[L-1]
+    return mpo
+
+def mpo_xxz(L,h,Delta):
+    sigma_x = np.array([[0, 1], [1, 0]])
+    sigma_y = np.array([[0, -1j], [1j, 0]])
+    sigma_z = np.array([[1, 0], [0, -1]])
+    zero = np.zeros((2, 2))
+    identity = np.eye(2)
+    mpo = []
+    mpo_0 = np.array([[h*sigma_x,sigma_x,sigma_y,Delta*sigma_z,identity]]).transpose(0,2,3,1)
+    mpo_i = np.array([[identity,zero,zero,zero,zero],
+                      [sigma_x,zero,zero,zero,zero],
+                      [sigma_y,zero,zero,zero,zero],
+                      [sigma_z,zero,zero,zero,zero],
+                      [h*sigma_x,sigma_x,sigma_y,Delta*sigma_z,identity]]).transpose(0,2,3,1)
+    mpo_L_1 = np.array([[identity],[sigma_x],[sigma_y],[sigma_z],[h*sigma_x]]).transpose(0,2,3,1)
+    mpo.append(mpo_0)  # mpo[0]
+    for i in range(1, L-1):
+        mpo.append(mpo_i)  # mpo[i]
+    mpo.append(mpo_L_1)  # mpo[L-1]
     return mpo
 
 """ canonical form の関数群 """
