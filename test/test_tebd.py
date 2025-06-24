@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from mylib import TEBD, TDVP
+from mylib import TEBD, TDVP, MPS
 
 """ U_ZXのテスト """
 # U_ZX = TEBD.U_ZX(1, 1)
@@ -42,16 +42,17 @@ from mylib import TEBD, TDVP
 # print(TEBD.correlation(mps,0,1, 'z'))
 
 """ M_xの時間依存性テスト """
-# L = 20
-# # mps, D = TEBD.all_up(L)
-# # T, M_x,_,_ = TEBD.tebd2(mps, D, 32, 1, 1, 10, 100, 1e-10, 'x')
-# # plt.plot(T, M_x, label='tebd2 M_x')
+L = 10
 # mps, D = TEBD.all_up(L)
-# T, M_x, Energy = TEBD.tebd2_ver2(mps, D, 32, 1, 1, 10, 1000, 1e-10, 'x')
-# plt.plot(T, M_x, label='tebd2_ver2 M_x')
-# # mps, D = TEBD.all_up(L)
-# # T, M_x = TEBD.tebd1(mps, D, 32, 1, 1, 10, 100, 1e-10, 'x')
-# plt.plot(T, M_x, label='tebd1 M_x')
+# T, M_x,_,_ = TEBD.tebd2(mps, D, 32, 1, 1, 10, 100, 1e-10, 'x')
+# plt.plot(T, M_x, label='tebd2 M_x')
+mps = MPS.all_up(L)
+M_x = TEBD.tebd2(mps, 1, 1, 10, 1000, output_type = 'M_x')
+T = np.linspace(0, 10, 1001)
+plt.plot(T, M_x, label='tebd2_ver2 M_x')
+# mps, D = TEBD.all_up(L)
+T, M_x = TEBD.tebd1(mps, 1, 1, 10, 100, operator='x')
+plt.plot(T, M_x, label='tebd1 M_x')
 
 """ M_zの時間依存性テスト """
 # L = 10

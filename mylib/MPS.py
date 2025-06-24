@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-import TDVP,TEBD
+from mylib import TDVP,TEBD
 
 """ 足の順番についての注意 """
 # mpoの足の順番は、左下上右の順。
@@ -229,10 +229,24 @@ def expval(operator,mps,center):
         z_list.append(float(z_i.real))
     return z_list
 
+# 入力'x'などに対して対応する演算子を返す関数
+def build_operator(
+    operator: str
+):
+    valid = {
+        'z': np.array([[1, 0], [0, -1]]),
+        'x': np.array([[0, 1], [1, 0]]),
+        'y': np.array([[0, -1j], [1j, 0]])
+    }
+    if operator in valid:
+        return valid[operator]
+    else:
+        raise ValueError(f"Operator '{operator}' is not supported.")
+
 # 相関
 def correlation(mps, i, j, operator='z'):
     copy_mps = copy.deepcopy(mps)
-    op = TEBD.build_operator(operator)
+    op = build_operator(operator)
     mps_i = np.einsum('ab,ibj->iaj', op, copy_mps[i])
     mps_j = np.einsum('ab,ibj->iaj', op, copy_mps[j])
     copy_mps[i] = mps_i 

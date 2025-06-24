@@ -1,6 +1,7 @@
 import numpy as np
 import time
 from mylib import TDVP, MPS
+import copy
 
 # 変数の並びのルール
 # mps > D,L > maxbond > h > J > T,dt,n_steps > cutoff > operator
@@ -27,20 +28,6 @@ def U_ZZX(h, J, dt):
     gamma = 1j * dt * S
     U_H = U @ np.diag(np.exp(gamma)) @ U.conj().T
     return U_H
-
-# 入力'x'などに対して対応する演算子を返す関数
-def build_operator(
-    operator: str
-):
-    valid = {
-        'z': np.array([[1, 0], [0, -1]]),
-        'x': np.array([[0, 1], [1, 0]]),
-        'y': np.array([[0, -1j], [1j, 0]])
-    }
-    if operator in valid:
-        return valid[operator]
-    else:
-        raise ValueError(f"Operator '{operator}' is not supported.")
 
 # TEBDで用いるユニタリを構築する関数
 def build_twosite_unitary(
@@ -73,16 +60,16 @@ def onsite(mps, h, dt):
 # 一般の近接2サイト相互作用を適用する関数
 def apply_bond_layer(
     mps,
-    D: list,                    # 各サイトのボンド次元のリスト
-    maxbond: int,               # 最大ボンド次元
     h: float,                   # 磁場の強さ
     J: float,                   # 相互作用定数
     dt: float,                  # このstepの時間幅（係数込み）
     operator: str,              # 'ZZ' or 'JZZhXhX' or ...
     bond_type: str,             # 'even' or 'odd'
     direction: str,             # 'lr'（左→右）または 'rl'（右→左）
+    maxbond: int = 100,               # 最大ボンド次元
     cutoff: float = 1e-10       # SVDの閾値
 ):  
+    D = MPS.get_bondinfo(mps)
     L = len(mps)
     U_twosite = build_twosite_unitary(h, J, dt, operator)
     if direction == 'lr':
@@ -174,30 +161,30 @@ def apply_bond_layer(
 
 def tebd1(
     mps,
-    D: list,                    # 各サイトのボンド次元のリスト
-    maxbond: int,               # 最大ボンド次元
     h: float,                   # 磁場の強さ
     J: float,                   # 相互作用定数
     T: float,                   # 時間
     n_steps: int,               # 時間ステップ数
+    maxbond: int = 100,         # 最大ボンド次元
     cutoff: float = 1e-10,      # SVDの閾値
     operator: str = 'z'         # 演算子の種類 ('z' or 'x')
 ):  
+    D = MPS.get_bondinfo(mps)
     dt = T / n_steps
     Time = []
     Magnetization = []
     Time.append(0)
-    Magnetization.append(np.sum(expval(operator, mps, 1)))
+    Magnetization.append(np.sum(MPS.expval(operator, mps, 1)))
     for step in range(n_steps): 
         if step % (n_steps // 10) == 0:
             cleaned = [int(x) for x in D]
             #print(cleaned)
         onsite(mps, h, dt)
-        apply_bond_layer(mps, D, maxbond, h, J, dt, 'ZZ', 'even', 'lr', cutoff)
-        apply_bond_layer(mps, D, maxbond, h, J, dt, 'ZZ', 'odd', 'rl', cutoff)
+        apply_bond_layer(mps, h, J, dt, 'ZZ', 'even', 'lr', maxbond, cutoff)
+        apply_bond_layer(mps, h, J, dt, 'ZZ', 'odd', 'rl', maxbond, cutoff)
         
         Time.append((step+1) * dt)
-        M = np.sum(expval(operator, mps, 1))
+        M = np.sum(MPS.expval(operator, mps, 1))
         Magnetization.append(M)
 
         # # 進捗状況の表示
@@ -215,36 +202,54 @@ def tebd2(
     n_steps: int,               # 時間ステップ数
     maxbond: int = 100,         # 最大ボンド次元
     cutoff: float = 1e-10,      # SVDの閾値
-    operator: str = 'z'         # 演算子の種類 ('z' or 'x')
+    output_type: str = 'energy',# 出力の種類 ('z' or 'x')
+    clone = False                # mpsをコピーするかどうか
 ):  
-    D = MPS.get_bondinfo(mps)
-    mpo = TDVP.mpo_ising_transverse(len(mps), h, J)
+    mps_copy = copy.deepcopy(mps) if clone else mps
+    D = MPS.get_bondinfo(mps_copy)
+    mpo = MPS.mpo_ising_transverse(len(mps_copy), h, J)
     dt = T / n_steps
-    Time = []
-    Magnetization = []
-    Energy = []
-    Time.append(0)
-    Magnetization.append(np.sum(expval(operator, mps, 1)))
-    Energy.append(energy(mps,mpo))
+    
+    exp_func = output(output_type, mpo)
+    Result = []
+    Result.append(exp_func(mps_copy))
+    
     for step in range(n_steps): 
-        if step % (n_steps // 10) == 0:
-            cleaned = [int(x) for x in D]
-            #print(cleaned)
-        onsite(mps, h, dt/2)
-        apply_bond_layer(mps, D, maxbond, h, J, dt, 'ZZ', 'even', 'lr', cutoff)
-        apply_bond_layer(mps, D, maxbond, h, J, dt, 'ZZ', 'odd', 'rl', cutoff)
-        onsite(mps, h, dt/2)
+        onsite(mps_copy, h, dt/2)
+        apply_bond_layer(mps_copy, h, J, dt, 'ZZ', 'even', 'lr',maxbond, cutoff)
+        apply_bond_layer(mps_copy, h, J, dt, 'ZZ', 'odd', 'rl', maxbond, cutoff)
+        onsite(mps_copy, h, dt/2)
         
-        Time.append((step+1) * dt)
-        M = np.sum(expval(operator, mps, 1))
-        Magnetization.append(M)
-        Energy.append(energy(mps,mpo))
+        Result.append(exp_func(mps_copy))
 
         # # 進捗状況の表示
         percent = (step + 1) / n_steps * 100
         print(f"進捗状況: {percent:.2f}%", end="\r")
         time.sleep(0.00000001)
         
-    return Time, Magnetization, Energy
+    return Result
 
-""" 物理量の計算 """
+# tebdの出力を選択する関数
+def output(
+    output_type : str,
+    mpo : list,
+    ):
+    if output_type == 'energy':
+        def energy(mps):
+            result = MPS.energy(mps, mpo)
+            return result
+        return energy
+    elif output_type == 'M_x':
+        def M_x(mps,center=1):
+            result = np.sum(MPS.expval('x', mps, center))
+            return result
+        return M_x
+    elif output_type == 'M_z':
+        def M_z(mps,center=1):
+            result = np.sum(MPS.expval('z', mps, center))
+            return result
+        return M_z
+    else:
+        raise ValueError(f"Output type '{output_type}' is not supported.")
+            
+    
