@@ -56,11 +56,12 @@ def update_left_env(mps, mpo, Left, i):
 # l->rとr->lをまとめて行う
 def sweep(
     mps: list, 
-    mpo: list, 
-    maxbond: int, 
+    mpo: list,  
     dt: float, 
-    Left: list, # Left　environment
-    Right: list # Right environment
+    Left: list,     # Left　environment
+    Right: list,    # Right environment
+    maxbond: int = 100,
+    cutoff: float = 1e-10
 ):
     if len(mps) != len(mpo):
         raise ValueError("Length of mps and mpo must be the same.")
@@ -82,15 +83,19 @@ def sweep(
         T = sp.sparse.linalg.expm_multiply(Heff, T)
         T = T.reshape(shape[0]*shape[1], shape[2]*shape[3])
         U_svd, S_svd, Vh_svd = np.linalg.svd(T, full_matrices=False)
+        
         # トランケーション
-        if len(S_svd) > maxbond:
-            idx = maxbond
-            U_svd = U_svd[:, :idx]
-            S_svd = S_svd[:idx]
-            Vh_svd = Vh_svd[:idx, :]
-            S_svd /= np.linalg.norm(S_svd)
+        indices = np.where(S_svd < cutoff)[0]
+        if len(indices) > 0:
+            idx = min(indices[0], maxbond)
         else:
-            idx = len(S_svd)
+            idx = min(len(S_svd), maxbond)
+        U_svd = U_svd[:, :idx]
+        S_svd = S_svd[:idx]
+        Vh_svd = Vh_svd[:idx, :]
+        S_svd /= np.linalg.norm(S_svd)
+        
+        # mps[i]とmps[i+1]を更新
         mps[i] = U_svd.reshape(shape[0], shape[1], idx)
         mps[i+1] = (Vh_svd).reshape(idx, shape[2], shape[3])
         mps[i+1] = np.einsum('ij,jak->iak', np.diag(S_svd), mps[i+1])  
@@ -121,15 +126,19 @@ def sweep(
         T = sp.sparse.linalg.expm_multiply(Heff, T)
         T = T.reshape(shape[0]*shape[1], shape[2]*shape[3])
         U_svd, S_svd, Vh_svd = np.linalg.svd(T, full_matrices=False)
+        
         # トランケーション
-        if len(S_svd) > maxbond:
-            idx = maxbond
-            U_svd = U_svd[:, :idx]
-            S_svd = S_svd[:idx]
-            Vh_svd = Vh_svd[:idx, :]
-            S_svd /= np.linalg.norm(S_svd)
+        indices = np.where(S_svd < cutoff)[0]
+        if len(indices) > 0:
+            idx = min(indices[0], maxbond)
         else:
-            idx = len(S_svd)
+            idx = min(len(S_svd), maxbond)
+        U_svd = U_svd[:, :idx]
+        S_svd = S_svd[:idx]
+        Vh_svd = Vh_svd[:idx, :]
+        S_svd /= np.linalg.norm(S_svd)
+        
+        # mps[i-1]とmps[i]を更新
         mps[i] = Vh_svd.reshape(idx, shape[2], shape[3])
         mps[i-1] = (U_svd).reshape(shape[0], shape[1], idx)
         mps[i-1] = np.einsum('iaj,jk->iak', mps[i-1], np.diag(S_svd))  
@@ -149,9 +158,10 @@ def sweep(
 def tdvp(
     mps: list,
     mpo: list,
-    maxbond: int,
     T: float,
     n_steps: int,
+    maxbond: int = 100,
+    cutoff: float = 1e-10,
     output_type: str = 'M_x',
     clone = False
 ):  
@@ -165,7 +175,7 @@ def tdvp(
     Result.append(exp_func(mps_copy))  # 初期状態の演算子の期待値を計算
     
     for i in range(n_steps):
-        sweep(mps_copy, mpo, maxbond, dt, Left, Right)
+        sweep(mps_copy, mpo, dt, Left, Right, maxbond, cutoff)
         Result.append(exp_func(mps_copy))  # 各ステップでの演算子の期待値を計算
         progress(i, n_steps)
 
