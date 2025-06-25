@@ -105,6 +105,7 @@ def mpo_xxz(L,h,Delta):
     mpo.append(mpo_L_1)  # mpo[L-1]
     return mpo
 
+# Annealing用のMPO
 def spin_glass_annealing(
     L: int ,
     h: float ,
@@ -120,11 +121,12 @@ def spin_glass_annealing(
     sigma_x = np.array([[0, 1], [1, 0]])
     sigma_z = np.array([[1, 0], [0, -1]])
     identity = np.eye(2)
+    bias = 1e-4
     
     mpo = []
     
     mpo_0 = np.zeros((1, L+2, 2, 2), dtype=complex)
-    mpo_0[0,0] = h * sigma_x
+    mpo_0[0,0] = h * sigma_x + bias * sigma_z
     mpo_0[0,L] = sigma_z
     mpo_0[0,L+1] = identity
     mpo.append(mpo_0.transpose(0,2,3,1))  # mpo[0]
@@ -139,14 +141,14 @@ def spin_glass_annealing(
     for i in range(1, L*L-1):
         mpo_i[1,0] = J_vert[i] * sigma_z
         mpo_i[L,0] = J_holiz[i] * sigma_z
-        mpo_i[L+1,0] = h * sigma_x
-        mpo.append(copy.deepcopy(mpo_i).transpose(0,2,3,1))  # mpo[i]
+        mpo_i[L+1,0] = h * sigma_x + bias * sigma_z
+        mpo.append(copy.deepcopy(mpo_i.transpose(0,2,3,1))) # mpo[i]
         
     mpo_last =np.zeros((L+2, 1, 2, 2), dtype=complex)
     mpo_last[0,0] = identity
-    mpo_last[1,0] = J_vert[L*L-1] * sigma_z
+    mpo_last[1,0] = J_vert[L*L-1]*sigma_z
     mpo_last[L,0] = J_holiz[L*L-1]*sigma_z
-    mpo_last[L+1,0] = h * sigma_x
+    mpo_last[L+1,0] = h * sigma_x + bias * sigma_z
     mpo.append(mpo_last.transpose(0,2,3,1))
     
     return mpo
