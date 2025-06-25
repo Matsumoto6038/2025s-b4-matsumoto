@@ -105,6 +105,56 @@ def mpo_xxz(L,h,Delta):
     mpo.append(mpo_L_1)  # mpo[L-1]
     return mpo
 
+def spin_glass(
+    L: int ,
+    h: float ,
+    seed: int =12345):
+    
+    sigma_z = np.array([[1, 0], [0, -1]])
+    identity = np.eye(2)
+    zero = np.zeros((2, 2))
+    
+    J_holiz, J_vert = generate_J_array(L, seed)
+    
+    mpo = []
+    
+    mpo_0 = np.zeros((1, L+2, 2, 2), dtype=complex)
+    mpo_0[0,0] = h * sigma_z
+    mpo_0[0,L] = sigma_z
+    mpo_0[0,L+1] = identity
+    mpo.append(mpo_0.transpose(0,2,3,1))  # mpo[0]
+    
+    mpo_i = np.zeros((L+2, L+2, 2, 2), dtype=complex)
+    mpo_i[0,0] = identity
+    mpo_i[L+1,L] = sigma_z
+    mpo_i[L+1,L+1] = identity
+    for i in range(2,L+1):
+        mpo_i[i,i-1] = identity
+    
+    for i in range(1, L*L-1):
+        mpo_i[1,0] = J_vert[i] * sigma_z
+        mpo_i[L,0] = J_holiz[i] * sigma_z
+        mpo_i[L+1,0] = h * sigma_z
+        mpo.append(mpo_i.transpose(0,2,3,1))  # mpo[i]
+        
+    mpo_last =np.zeros((L+2, 1, 2, 2), dtype=complex)
+    mpo_last[0,0] = identity
+    mpo_last[1,0] = J_vert[L*L-1] * sigma_z
+    mpo_last[L,0] = J_holiz[L*L-1]*sigma_z
+    mpo_last[L+1,0] = h * sigma_z
+    mpo.append(mpo_last.transpose(0,2,3,1))
+    
+    return mpo
+
+def generate_J_array(L,seed=12345):
+    np.random.seed(seed)
+    J_holiz = np.random.choice([-1,1], size = L*L)
+    J_vert = np.random.choice([-1,1], size = L*L)
+    for i in range(L):
+        J_holiz[i*L-1] = 0
+        J_vert[(L-1)*L+i] = 0
+    return J_holiz, J_vert
+
 """ canonical form の関数群 """
 
 def right_canonical(mps):
