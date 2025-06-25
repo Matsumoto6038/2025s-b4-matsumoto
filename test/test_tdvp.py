@@ -82,7 +82,7 @@ import time
 # print(f"time taken: {20*(end - start):.2f} seconds")
 
 """ TDVPのテスト """
-L = 10
+L = 9
 mps = MPS.all_up(L)
 mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
 # mpo = MPS.mpo_xxz(L, h=1, Delta=2)
