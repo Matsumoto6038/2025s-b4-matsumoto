@@ -117,13 +117,14 @@ def spin_glass_annealing(
     J_vert = weight * J_vert
     J_holiz = weight * J_holiz
     
+    sigma_x = np.array([[0, 1], [1, 0]])
     sigma_z = np.array([[1, 0], [0, -1]])
     identity = np.eye(2)
     
     mpo = []
     
     mpo_0 = np.zeros((1, L+2, 2, 2), dtype=complex)
-    mpo_0[0,0] = h * sigma_z
+    mpo_0[0,0] = h * sigma_x
     mpo_0[0,L] = sigma_z
     mpo_0[0,L+1] = identity
     mpo.append(mpo_0.transpose(0,2,3,1))  # mpo[0]
@@ -138,14 +139,14 @@ def spin_glass_annealing(
     for i in range(1, L*L-1):
         mpo_i[1,0] = J_vert[i] * sigma_z
         mpo_i[L,0] = J_holiz[i] * sigma_z
-        mpo_i[L+1,0] = h * sigma_z
-        mpo.append(mpo_i.transpose(0,2,3,1))  # mpo[i]
+        mpo_i[L+1,0] = h * sigma_x
+        mpo.append(copy.deepcopy(mpo_i).transpose(0,2,3,1))  # mpo[i]
         
     mpo_last =np.zeros((L+2, 1, 2, 2), dtype=complex)
     mpo_last[0,0] = identity
     mpo_last[1,0] = J_vert[L*L-1] * sigma_z
     mpo_last[L,0] = J_holiz[L*L-1]*sigma_z
-    mpo_last[L+1,0] = h * sigma_z
+    mpo_last[L+1,0] = h * sigma_x
     mpo.append(mpo_last.transpose(0,2,3,1))
     
     return mpo
@@ -294,7 +295,7 @@ def energy(mps, mpo):
     TDVP.update_left_env(mps, mpo, Left, 0)
     TDVP.update_left_env(mps, mpo, Left, 1)
     energy = np.einsum('abi,iab->',Left[2],Right[0])
-    return -energy
+    return -energy.real
 
 # 出力を選択する関数
 def output(
