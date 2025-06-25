@@ -105,16 +105,20 @@ def mpo_xxz(L,h,Delta):
     mpo.append(mpo_L_1)  # mpo[L-1]
     return mpo
 
-def spin_glass(
+def spin_glass_annealing(
     L: int ,
     h: float ,
-    seed: int =12345):
+    J_holiz: np.ndarray,
+    J_vert: np.ndarray,
+    weight: float = 1.0
+    ):
+    
+    h = (1-weight) * h
+    J_vert = weight * J_vert
+    J_holiz = weight * J_holiz
     
     sigma_z = np.array([[1, 0], [0, -1]])
     identity = np.eye(2)
-    zero = np.zeros((2, 2))
-    
-    J_holiz, J_vert = generate_J_array(L, seed)
     
     mpo = []
     
