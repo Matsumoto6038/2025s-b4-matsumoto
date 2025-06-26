@@ -121,7 +121,9 @@ def spin_glass_annealing(
     sigma_x = np.array([[0, 1], [1, 0]])
     sigma_z = np.array([[1, 0], [0, -1]])
     identity = np.eye(2)
-    bias = weight * 0.5
+    
+    # bias項は、そのエネルギー寄与が相互作用エネルギーギャップ(2)の半分以下になるように設定
+    bias = 1 * weight / (L*L)
     
     mpo = []
     
