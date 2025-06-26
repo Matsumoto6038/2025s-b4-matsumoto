@@ -13,30 +13,29 @@ import time
 # h = 2
 # n_steps = 100
 
-# J_holiz, J_vert = MPS.generate_J_array(L=L, seed=1234)
-# mpo = MPS.spin_glass_annealing(L=L, h=h, J_holiz=J_holiz, J_vert=J_vert)
+# J_holiz = np.array([2]*L*L)
+# J_vert = np.array([0]*L*L)
+# weight = 0.5
+# mpo = MPS.spin_glass_annealing(L, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=weight)
+
 # mps = MPS.all_up(L*L)
 # rate = float(1/n_steps)
 # Left = TDVP.initial_left_env(len(mps))
 # Right = TDVP.initial_right_env(mps, mpo)
 
-# J_holiz = np.array([2]*L*L)
-# J_vert = np.array([0]*L*L)
-# weight = 0.5
-# mpo = MPS.spin_glass_annealing(L, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=weight)
-# time = np.linspace(0, 10, n_steps+1)
+# timer = np.linspace(0, 10, n_steps+1)
 # result = TDVP.tdvp(mps, mpo, 10, n_steps, output_type='M_x', cutoff=1e-6, clone=True)
-# plt.plot(time, result, label='annealing')
+# plt.plot(timer, result, label='annealing')
 
 # # 以下のTDVPと同じ挙動
-# # L = 9
-# # mps = MPS.all_up(L)
-# # mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
-# # n_steps = 100
-# # T = 10
-# # Time = np.linspace(0, T, n_steps + 1)
-# # M_x = TDVP.tdvp(mps, mpo, T=T, n_steps=n_steps, output_type='M_x', cutoff = 1e-6,clone = True)
-# # plt.plot(Time, M_x, label='TDVP')
+# L = 9
+# mps = MPS.all_up(L)
+# mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
+# n_steps = 100
+# T = 10
+# Time = np.linspace(0, T, n_steps + 1)
+# M_x = TDVP.tdvp(mps, mpo, T=T, n_steps=n_steps, output_type='M_x', cutoff = 1e-6,clone = True)
+# plt.plot(Time, M_x, label='TDVP')
 
 
 # plt.legend()
@@ -56,11 +55,15 @@ import time
 """ annealing """
 L = 2
 h = 0.2
-n_steps = 10000
-rate = float(1/n_steps)
-total_time = 100
+n_steps = 4000
+total_time = 1000
+rate = float(total_time/n_steps)
 
 J_holiz, J_vert = MPS.generate_J_array(L=L, seed=12345)
+print(f"J_holiz: {J_holiz}")
+print(f"J_vert: {J_vert}")
+# J_holiz = np.array([0]*L*L)  # 水平方向の相互作用は定数に設定
+# J_vert = np.array([1]*L*L)  # 垂直方向の相互作用はゼロに設定
 mpo = MPS.spin_glass_annealing(L=L, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=0)
 mps = MPS.plus(L*L)
 
@@ -77,12 +80,12 @@ for i in range(0,n_steps):
     mpo = MPS.spin_glass_annealing(L, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=weight)
     result.append(MPS.energy(mps, mpo))  # エネルギーを計算
     for j in range(4):
-        TDVP.sweep(mps=mps, mpo=mpo, dt=rate*total_time, Left=Left, Right=Right, maxbond=30, cutoff=1e-10)
+        TDVP.sweep(mps=mps, mpo=mpo, dt=rate/4, Left=Left, Right=Right, maxbond=30, cutoff=0)
         result.append(MPS.energy(mps, mpo))
     TDVP.progress(i, n_steps)
-    # if i % (n_steps // 10) == 0:
-    #     cleaned = [int(x) for x in MPS.get_bondinfo(mps)]
-    #     print(f"Bond dimensions: {cleaned}")
+    if i % (n_steps // 10) == 0:
+        cleaned = [int(x) for x in MPS.get_bondinfo(mps)]
+        print(f"Bond dimensions: {cleaned}")
 end = time.time()
 print(f"Annealing time: {end - start:.2f} seconds")
 print(MPS.expval('z', mps, 0))  # M_xの期待値を計算
@@ -93,7 +96,7 @@ plt.grid()
 plt.show()
 
 """ 全数探索 """
-# L = 3
+# L = 2
 # def state_to_bit(state: int, L: int):
 #     if state > 2**(L*L) - 1:
 #         raise ValueError(f"state must be in the range [0, {2**(L*L) - 1}].")
@@ -102,7 +105,7 @@ plt.show()
 
 # def make_cost_func(J_holiz, J_vert, L):
 #     def cost_func(
-#         state: int
+#         state
 #     ):
 #         bit_list = state_to_bit(state, L)
 #         nnx_prod = bit_list[:L*L-1] * bit_list[1:]
@@ -125,5 +128,3 @@ plt.show()
 #         print(f"state: {i}, min_energy: {-min_energy}")
 # print(f"min_state: {min_state}, min_energy: {-min_energy}")
 # print(f"min_state bit: {state_to_bit(min_state, L)}")
-
-# print(cost_func(int('001101010',2)))

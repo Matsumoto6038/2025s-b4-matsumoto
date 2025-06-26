@@ -82,7 +82,7 @@ import time
 # print(f"time taken: {20*(end - start):.2f} seconds")
 
 """ TDVPのテスト """
-L = 9
+L = 10
 mps = MPS.all_up(L)
 mpo = MPS.mpo_ising_transverse(L, h=1, J=1)
 # mpo = MPS.mpo_xxz(L, h=1, Delta=2)
@@ -90,7 +90,7 @@ start = time.time()
 n_steps = 100
 T = 10
 Time = np.linspace(0, T, n_steps + 1)
-M_x = TDVP.tdvp(mps, mpo, T=T, n_steps=n_steps, output_type='M_x', cutoff = 1e-6,clone = True)
+M_x = TDVP.tdvp(mps, mpo, T=T, n_steps=n_steps, output_type='M_x', cutoff=1e-10, maxbond=32, clone = True)
 end = time.time()
 print(f"TDVP: {end - start:.2f} seconds")
 plt.plot(Time, M_x, label='TDVP')
@@ -101,6 +101,9 @@ plt.plot(Time, M_x, label='TDVP')
 # plt.plot(Time, M_x, label='TEBD')
 # end = time.time()
 # print(f"TEBD: {end - start:.2f} seconds")
+
+""" 厳密解との比較 """
+# データファイルから厳密解を読み込む
 
 """ グラフの表示設定 """
 plt.xlabel('Time')
