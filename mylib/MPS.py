@@ -121,7 +121,7 @@ def spin_glass_annealing(
     sigma_x = np.array([[0, 1], [1, 0]])
     sigma_z = np.array([[1, 0], [0, -1]])
     identity = np.eye(2)
-    bias = 1e-4
+    bias = 0
     
     mpo = []
     

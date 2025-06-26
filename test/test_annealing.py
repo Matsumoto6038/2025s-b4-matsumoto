@@ -54,11 +54,11 @@ import time
 # print(f"mpo[i]: {mpo[i].transpose(0,3,1,2)}")
 
 """ annealing """
-L = 3
+L = 2
 h = 0.2
-n_steps = 300
+n_steps = 10000
 rate = float(1/n_steps)
-total_time = 1000
+total_time = 100
 
 J_holiz, J_vert = MPS.generate_J_array(L=L, seed=12345)
 mpo = MPS.spin_glass_annealing(L=L, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=0)
@@ -80,6 +80,9 @@ for i in range(0,n_steps):
         TDVP.sweep(mps=mps, mpo=mpo, dt=rate*total_time, Left=Left, Right=Right, maxbond=30, cutoff=1e-10)
         result.append(MPS.energy(mps, mpo))
     TDVP.progress(i, n_steps)
+    # if i % (n_steps // 10) == 0:
+    #     cleaned = [int(x) for x in MPS.get_bondinfo(mps)]
+    #     print(f"Bond dimensions: {cleaned}")
 end = time.time()
 print(f"Annealing time: {end - start:.2f} seconds")
 print(MPS.expval('z', mps, 0))  # M_xの期待値を計算
