@@ -125,30 +125,34 @@ def spin_glass_annealing(
     
     mpo = []
     
+    # サイト0のMPOを作成
     mpo_0 = np.zeros((1, L+2, 2, 2), dtype=complex)
-    mpo_0[0,0] = h * sigma_x + bias * sigma_z
-    mpo_0[0,L] = sigma_z
-    mpo_0[0,L+1] = identity
+    mpo_0[0,0] = identity
+    mpo_0[0,1] = J_vert[0] * sigma_z
+    mpo_0[0,L] = J_holiz[0] * sigma_z
+    mpo_0[0,L+1] = h * sigma_x + bias * sigma_z
     mpo.append(mpo_0.transpose(0,2,3,1))  # mpo[0]
     
+    # サイト1からL*L-2までのMPOを作成
     mpo_i = np.zeros((L+2, L+2, 2, 2), dtype=complex)
     mpo_i[0,0] = identity
-    mpo_i[L+1,L] = sigma_z
+    mpo_i[L,L+1] = sigma_z
     mpo_i[L+1,L+1] = identity
     for i in range(2,L+1):
-        mpo_i[i,i-1] = identity
+        mpo_i[i-1,i] = identity
     
     for i in range(1, L*L-1):
-        mpo_i[1,0] = J_vert[i] * sigma_z
-        mpo_i[L,0] = J_holiz[i] * sigma_z
-        mpo_i[L+1,0] = h * sigma_x + bias * sigma_z
+        mpo_i[0,0] = identity
+        mpo_i[0,1] = J_vert[i] * sigma_z
+        mpo_i[0,L] = J_holiz[i] * sigma_z
+        mpo_i[0,L+1] = h * sigma_x + bias * sigma_z
         mpo.append(copy.deepcopy(mpo_i.transpose(0,2,3,1))) # mpo[i]
         
+    # サイト L*L-1 のMPOを作成
     mpo_last =np.zeros((L+2, 1, 2, 2), dtype=complex)
-    mpo_last[0,0] = identity
-    mpo_last[1,0] = J_vert[L*L-1]*sigma_z
-    mpo_last[L,0] = J_holiz[L*L-1]*sigma_z
-    mpo_last[L+1,0] = h * sigma_x + bias * sigma_z
+    mpo_last[0,0] = h * sigma_x + bias * sigma_z
+    mpo_last[L,0] = sigma_z
+    mpo_last[L+1,0] = identity
     mpo.append(mpo_last.transpose(0,2,3,1))
     
     return mpo

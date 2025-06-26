@@ -55,8 +55,8 @@ import time
 """ annealing """
 L = 2
 h = 0.2
-n_steps = 4000
-total_time = 1000
+n_steps = 400
+total_time = 200
 rate = float(total_time/n_steps)
 
 J_holiz, J_vert = MPS.generate_J_array(L=L, seed=12345)
@@ -74,11 +74,11 @@ result = []
 
 start = time.time()
 for i in range(0,n_steps):
-    # weight = (np.sin(np.pi * i * rate / 2))**2  
+    weight = (np.sin(np.pi * i / (2*n_steps)))**2  
     # weight = i * rate  
-    weight = (np.tanh((i - n_steps / 2) / (n_steps / 10)) + 1) / 2
+    # weight = (np.tanh((i - n_steps / 2) / (n_steps / 10)) + 1) / 2
     mpo = MPS.spin_glass_annealing(L, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=weight)
-    result.append(MPS.energy(mps, mpo))  # エネルギーを計算
+    result.append(MPS.energy(mps, mpo))  
     for j in range(4):
         TDVP.sweep(mps=mps, mpo=mpo, dt=rate/4, Left=Left, Right=Right, maxbond=30, cutoff=0)
         result.append(MPS.energy(mps, mpo))
@@ -103,7 +103,7 @@ plt.show()
 #     bit = bin(state)[2:].zfill(L*L)  # 2進数に変換し、L*L桁に0埋め
 #     return np.array([1 - int(b) * 2 for b in bit])
 
-# def make_cost_func(J_holiz, J_vert, L):
+# def make_cost_func(J_holiz, J_vert, bias, L):
 #     def cost_func(
 #         state
 #     ):
@@ -111,13 +111,14 @@ plt.show()
 #         nnx_prod = bit_list[:L*L-1] * bit_list[1:]
 #         nny_prod = bit_list[:L*L-L] * bit_list[L:]
 #         cost = np.dot(nnx_prod, J_holiz[:L*L-1]) + np.dot(nny_prod, J_vert[:L*L-L])
+#         cost += bias * np.sum(bit_list)
 #         return cost
 #     return cost_func
 
-# J_holiz, J_vert = MPS.generate_J_array(L=L, seed=12345)
+# J_holiz, J_vert = MPS.generate_J_array(L=L, seed=123)
 # print(f"J_holiz: {J_holiz}")
 # print(f"J_vert: {J_vert}")
-# cost_func = make_cost_func(J_holiz, J_vert, L)
+# cost_func = make_cost_func(J_holiz, J_vert, 0.5, L)
 
 # min_energy = -L*L
 # min_state = 0
@@ -125,6 +126,6 @@ plt.show()
 #     if min_energy < cost_func(i):
 #         min_energy = cost_func(i)
 #         min_state = i
-#         print(f"state: {i}, min_energy: {-min_energy}")
+#         # print(f"state: {i}, min_energy: {-min_energy}")
 # print(f"min_state: {min_state}, min_energy: {-min_energy}")
 # print(f"min_state bit: {state_to_bit(min_state, L)}")
