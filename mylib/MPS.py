@@ -107,7 +107,8 @@ def mpo_xxz(L,h,Delta):
 
 # Annealing用のMPO
 def spin_glass_annealing(
-    L: int ,
+    nx: int ,           # 格子の横のサイズ
+    ny: int ,           # 格子の縦のサイズ
     h: float ,
     J_holiz: np.ndarray,
     J_vert: np.ndarray,
@@ -123,49 +124,50 @@ def spin_glass_annealing(
     identity = np.eye(2)
     
     # bias項は、そのエネルギー寄与が相互作用エネルギーギャップ(2)の半分以下になるように設定
-    bias = 1 * weight / (L*L)
-    
+    bias = 1 * weight / (nx*ny)
+
     mpo = []
     
     # サイト0のMPOを作成
-    mpo_0 = np.zeros((1, L+2, 2, 2), dtype=complex)
+    mpo_0 = np.zeros((1, nx+2, 2, 2), dtype=complex)
     mpo_0[0,0] = identity
     mpo_0[0,1] = J_vert[0] * sigma_z
-    mpo_0[0,L] = J_holiz[0] * sigma_z
-    mpo_0[0,L+1] = h * sigma_x + bias * sigma_z
+    mpo_0[0,nx] = J_holiz[0] * sigma_z
+    mpo_0[0,nx+1] = h * sigma_x + bias * sigma_z
     mpo.append(mpo_0.transpose(0,2,3,1))  # mpo[0]
     
     # サイト1からL*L-2までのMPOを作成
-    mpo_i = np.zeros((L+2, L+2, 2, 2), dtype=complex)
+    mpo_i = np.zeros((nx+2, nx+2, 2, 2), dtype=complex)
     mpo_i[0,0] = identity
-    mpo_i[L,L+1] = sigma_z
-    mpo_i[L+1,L+1] = identity
-    for i in range(2,L+1):
+    mpo_i[nx,nx+1] = sigma_z
+    mpo_i[nx+1,nx+1] = identity
+    for i in range(2,nx+1):
         mpo_i[i-1,i] = identity
     
-    for i in range(1, L*L-1):
+    for i in range(1, nx*ny-1):
         mpo_i[0,0] = identity
         mpo_i[0,1] = J_vert[i] * sigma_z
-        mpo_i[0,L] = J_holiz[i] * sigma_z
-        mpo_i[0,L+1] = h * sigma_x + bias * sigma_z
+        mpo_i[0,nx] = J_holiz[i] * sigma_z
+        mpo_i[0,nx+1] = h * sigma_x + bias * sigma_z
         mpo.append(copy.deepcopy(mpo_i.transpose(0,2,3,1))) # mpo[i]
         
     # サイト L*L-1 のMPOを作成
-    mpo_last =np.zeros((L+2, 1, 2, 2), dtype=complex)
+    mpo_last =np.zeros((nx+2, 1, 2, 2), dtype=complex)
     mpo_last[0,0] = h * sigma_x + bias * sigma_z
-    mpo_last[L,0] = sigma_z
-    mpo_last[L+1,0] = identity
+    mpo_last[nx,0] = sigma_z
+    mpo_last[nx+1,0] = identity
     mpo.append(mpo_last.transpose(0,2,3,1))
     
     return mpo
 
-def generate_J_array(L,seed=12345):
+def generate_J_array(nx, ny,seed=12345):
     np.random.seed(seed)
-    J_holiz = np.random.choice([-1,1], size = L*L)
-    J_vert = np.random.choice([-1,1], size = L*L)
-    for i in range(L):
-        J_holiz[i*L-1] = 0
-        J_vert[(L-1)*L+i] = 0
+    J_holiz = np.random.choice([-1,1], size = nx*ny)
+    J_vert = np.random.choice([-1,1], size = nx*ny)
+    for i in range(ny):
+        J_holiz[(i+1)*nx-1] = 0
+    for i in range(nx):
+        J_vert[nx*(ny-1)+i] = 0
     return J_holiz, J_vert
 
 """ canonical form の関数群 """
