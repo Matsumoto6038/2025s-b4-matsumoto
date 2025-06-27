@@ -24,5 +24,5 @@ with open(filepath, "w") as f:
     for i in range(n_steps + 1):
         weight = annealing.weight_func(i, n_steps)
         data = annealing.annealing_energy(nx, ny, bias, h, J_holiz, J_vert, weight)
-        line = "".join(map(str,data))
+        line = " ".join(map(str,data))
         f.write(line + "\n")
