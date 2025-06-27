@@ -112,7 +112,8 @@ def spin_glass_annealing(
     h: float ,
     J_holiz: np.ndarray,
     J_vert: np.ndarray,
-    weight: float = 1.0
+    weight: float = 1.0,
+    bias = None
     ):
     
     h = (1-weight) * h
@@ -124,7 +125,10 @@ def spin_glass_annealing(
     identity = np.eye(2)
     
     # bias項は、そのエネルギー寄与が相互作用エネルギーギャップ(2)の半分以下になるように設定
-    bias = 1 * weight / (nx*ny)
+    if bias is None:
+        bias = 1 * weight / (nx*ny)
+    else:
+        bias = weight * bias
 
     mpo = []
     
