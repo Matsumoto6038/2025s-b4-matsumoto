@@ -1,0 +1,60 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mylib import MPS, TDVP, annealing
+
+nx = 2
+ny = 2
+h = 0.2
+bias = 0.5
+seed = 12345
+n_steps = 1000
+total_time = 500
+
+# 相互作用定数を乱数から生成
+rate = float(total_time / n_steps)
+J_holiz, J_vert = MPS.generate_J_array(nx=nx, ny=ny, seed=12345)
+
+# 初期状態を用意
+mps = MPS.plus(nx*ny)
+mpo = MPS.spin_glass_annealing(nx=nx, ny=ny, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=0, bias=bias)
+
+# 環境行列を初期化
+Left = TDVP.initial_left_env(nx*ny)
+Right = TDVP.initial_right_env(mps, mpo)
+
+results = []
+
+# Annealingの実行
+results.append(MPS.energy(mps, mpo))  
+for i in range(n_steps):
+    weight = annealing.weight_func(i, n_steps)
+    mpo = MPS.spin_glass_annealing(nx, ny, h=h, J_holiz=J_holiz, J_vert=J_vert, weight=weight, bias=bias)
+    for j in range(4):
+        TDVP.sweep(mps=mps, mpo=mpo, dt=rate/4, Left=Left, Right=Right, maxbond=30, cutoff=0)
+        results.append(MPS.energy(mps, mpo))
+    TDVP.progress(i, n_steps)
+    
+# エネルギーをプロット
+time = np.linspace(0, total_time, len(results))
+plt.plot(time, results, label='Annealing Energy')
+
+# 対角化の結果の読み込み
+base = os.path.dirname(os.path.dirname(os.getcwd()))
+folder = os.path.join(base, "results", "annealing")
+filepath = os.path.join(folder, f"exact_diag_nx={nx}_ny={ny}_h={h}_bias={bias}_seed={seed}.txt")
+
+# 基底状態と第一励起状態のエネルギーをプロット
+data = np.loadtxt(filepath, dtype=float)
+time = np.linspace(0, total_time, len(data[:,0]))
+plt.plot(time, data[:,0], label='ground state')
+plt.plot(time, data[:,1], label='first excited')
+
+plt.xlabel('Time')
+plt.ylabel('Energy')
+plt.legend()
+plt.grid()
+plt.show()
