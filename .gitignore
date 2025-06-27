@@ -196,5 +196,13 @@ cython_debug/
 # macOS specific files
 .DS_Store
 
-# png files
+# figure 
+figure/
 *.png
+
+# results 
+results/
+*.csv
+
+# test 
+test/
