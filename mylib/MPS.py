@@ -20,17 +20,17 @@ def plus(L):
 def all_up(L):
     mps = []
     for i in range(L):
-        mps.append(np.array([1,0]).reshape(1,2,1))
+        mps.append(np.array([1,0], dtype=complex).reshape(1,2,1))
     return mps
 
 def all_down(L):
     mps = []
     for i in range(L):
-        mps.append(np.array([0,1]).reshape(1,2,1))
+        mps.append(np.array([0,1], dtype=complex).reshape(1,2,1))
     return mps
 
 # 1/sqrt(2)(|0...0>+|1...1>)
-def GHZ_unnormalized(L):
+def GHZ_normalized(L):
     mps = []
     ket_0 = np.array([1,0])
     ket_1 = np.array([0,1])
@@ -42,6 +42,7 @@ def GHZ_unnormalized(L):
         mps.append(A)
     A = np.array([[ket_0],[ket_1]]).transpose(0,2,1)
     mps.append(A)  # 最後のサイト
+    mps = right_canonical(mps)  # 正規化
     return mps
 
 def mps_random(L, D):
@@ -302,7 +303,7 @@ def correlation(mps, i, j, operator='z'):
     z_ij = inner_product(mps, copy_mps)
     return z_ij - z_i * z_j # <z_i z_j> 
 
-# エネルギーも測定
+# エネルギー期待値
 def energy(mps, mpo):
     Right = TDVP.initial_right_env(mps, mpo)
     Left = TDVP.initial_left_env(len(mpo))
@@ -334,3 +335,31 @@ def output(
         return M_z
     else:
         raise ValueError(f"Output type '{output_type}' is not supported.")
+
+""" 測定に関する関数群 """
+# カノニカルフォームを作ってから測定を行う関数
+def measure_all_bits(mps, check=True):
+    mps = copy.deepcopy(mps)
+    if check:
+        if not check_right_canonical(mps):
+            mps = right_canonical(mps)
+    L = len(mps)
+    D = get_bondinfo(mps)
+    sigma_z = np.array([[1, 0], [0, -1]])
+    bits = ''
+    for i in range(L):
+        probability = (1 + np.einsum('iaj, ab, ibj-> ', mps[i].conj(), sigma_z, mps[i]).real) / 2
+        xi = np.random.rand()
+        if xi < probability:
+            bits += '0'
+            if i < L-1:
+                mps[i+1] = np.einsum('iaj, jbk-> iabk', mps[i], mps[i+1])
+                mps[i+1] = mps[i+1][:,0,:,:].reshape(1, 2, D[i+2])
+                mps[i+1] /= np.sqrt(probability)
+        else:
+            bits += '1'
+            if i < L-1:
+                mps[i+1] = np.einsum('iaj, jbk-> iabk', mps[i], mps[i+1])
+                mps[i+1] = mps[i+1][:,1,:,:].reshape(1, 2, D[i+2])
+                mps[i+1] /= np.sqrt(1 - probability)
+    return bits
