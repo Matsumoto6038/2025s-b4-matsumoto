@@ -5,6 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 import numpy as np
 import matplotlib.pyplot as plt
 
+""" exact_diagonalization.py で出力した時刻ごとの固有エネルギーをプロットする。 """
+
 nx = 3
 ny = 3
 h = 0.5

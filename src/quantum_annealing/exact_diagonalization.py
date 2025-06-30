@@ -4,6 +4,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 
 from mylib import annealing, MPS
 
+""" 量子アニーリングに用いたハミルトニアンを各時刻で対角化し、固有エネルギーを出力する。 """
+
 #各種パラメータの設定
 nx = 3          # スピングラスのx方向のサイト数
 ny = 3          # スピングラスのy方向のサイト数

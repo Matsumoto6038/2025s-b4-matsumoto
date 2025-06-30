@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mylib import MPS, TDVP, annealing
 
+""" スピングラスの量子アニーリングを行い、エネルギーの時間変化をプロットする。 """
+
 # 各種パラメータの設定
 nx = 3              # スピングラスのx方向のサイト数
 ny = 3              # スピングラスのy方向のサイト数
