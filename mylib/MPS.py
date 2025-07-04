@@ -292,6 +292,13 @@ def inner_product(mps1, mps2):
             inner = np.einsum('iaj,iak->jk', mps1[i].conj(), inner)
     return inner.reshape(1)
 
+# MPSの規格化を行う関数
+def normalize_mps(mps):
+    norm = inner_product(mps, mps)
+    for i in range(len(mps)):
+        mps[i] /= np.sqrt(norm)
+    return mps
+
 # 全ビットの期待値を計算するための環境テンソル
 def env(mps,center):
     #mixed canonical formの環境行列
