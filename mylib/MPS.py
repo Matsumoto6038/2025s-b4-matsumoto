@@ -175,6 +175,80 @@ def generate_J_array(nx, ny,seed=12345):
         J_vert[nx*(ny-1)+i] = 0
     return J_holiz, J_vert
 
+# 三角格子のスピングラスMPOを生成する関数
+def spin_glass_triangle(
+    nx: int,                    # 格子の横のサイズ
+    ny: int,                    # 格子の縦のサイズ
+    h: float,                   # 磁場
+    J_holiz: np.ndarray,        # 横方向の結合定数
+    J_vert: np.ndarray,         # 縦方向の結合定数
+    J_diag: np.ndarray,         # 対角方向の結合定数
+    bias,                       # バイアス
+    weight: float = 1.0,        # 重み
+):  
+    if type(bias) is float:
+        bias = np.array([bias] * (nx * ny))
+    
+    h = (1-weight) * h
+    J_vert = weight * J_vert
+    J_holiz = weight * J_holiz
+    J_diag = weight * J_diag
+    
+    sigma_x = np.array([[0, 1], [1, 0]])
+    sigma_z = np.array([[1, 0], [0, -1]])
+    identity = np.eye(2)
+    
+    mpo = []
+    
+    # サイト0のMPOを作成
+    mpo_0 = np.zeros((1, nx+2, 2, 2), dtype=complex)
+    mpo_0[0,0] = identity
+    mpo_0[0,1] = J_vert[0] * sigma_z
+    mpo_0[0,2] = J_diag[0] * sigma_z
+    mpo_0[0,nx] = J_holiz[0] * sigma_z
+    mpo_0[0,nx+1] = h * sigma_x + bias[0] * sigma_z
+    mpo.append(mpo_0.transpose(0,2,3,1))  # mpo[0]
+    
+    # サイト1からL*L-2までのMPOを作成
+    mpo_i = np.zeros((nx+2, nx+2, 2, 2), dtype=complex)
+    mpo_i[0,0] = identity
+    mpo_i[nx,nx+1] = sigma_z
+    mpo_i[nx+1,nx+1] = identity
+    for i in range(2,nx+1):
+        mpo_i[i-1,i] = identity
+    
+    for i in range(1, nx*ny-1):
+        mpo_i[0,0] = identity
+        mpo_i[0,1] = J_vert[i] * sigma_z
+        mpo_0[0,2] = J_diag[i] * sigma_z
+        mpo_i[0,nx] = J_holiz[i] * sigma_z
+        mpo_i[0,nx+1] = h * sigma_x + bias[i] * sigma_z
+        mpo.append(copy.deepcopy(mpo_i.transpose(0,2,3,1))) # mpo[i]
+        
+    # サイト L*L-1 のMPOを作成
+    mpo_last =np.zeros((nx+2, 1, 2, 2), dtype=complex)
+    mpo_last[0,0] = h * sigma_x + bias[nx*ny-1] * sigma_z
+    mpo_last[nx,0] = sigma_z
+    mpo_last[nx+1,0] = identity
+    mpo.append(mpo_last.transpose(0,2,3,1))
+    
+    return mpo
+
+def generate_J_triangle(nx, ny, seed=12345):
+    np.random.seed(seed)
+    J_holiz = np.random.choice([-1,1], size = nx*ny)
+    J_vert = np.random.choice([-1,1], size = nx*ny)
+    J_diag = np.zeros(nx*ny, dtype=int)  # 対角方向の結合定数はゼロで初期化
+    for i in range(ny):
+        J_holiz[(i+1)*nx-1] = 0
+    for i in range(nx):
+        J_vert[nx*(ny-1)+i] = 0
+    for i in range(ny-1):
+        for j in range(1,nx):
+            J_diag[i*nx+j] = np.random.choice([-1,1])
+    
+    return J_holiz, J_vert, J_diag
+
 """ canonical form の関数群 """
 
 def right_canonical(mps):
