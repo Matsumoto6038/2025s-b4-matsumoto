@@ -29,6 +29,20 @@ def all_down(L):
         mps.append(np.array([0,1], dtype=complex).reshape(1,2,1))
     return mps
 
+# ビット列に対応するMPSを生成
+def bits_to_mps(bits):
+    # bitsは文字列で、'0101'のように与える。
+    L = len(bits)
+    mps = []
+    for i in range(L):
+        if bits[i] == '0':
+            mps.append(np.array([1,0], dtype=complex).reshape(1,2,1))
+        elif bits[i] == '1':
+            mps.append(np.array([0,1], dtype=complex).reshape(1,2,1))
+        else:
+            raise ValueError("bits must be a string of '0' and '1'.")
+    return mps
+
 # 1/sqrt(2)(|0...0>+|1...1>)
 def GHZ_normalized(L):
     mps = []
