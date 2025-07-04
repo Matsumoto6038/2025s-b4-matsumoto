@@ -10,7 +10,7 @@ from mylib import annealing, MPS
 nx = 3          # スピングラスのx方向のサイト数
 ny = 3          # スピングラスのy方向のサイト数
 h = 0.5         # 横磁場の大きさ
-bias = 0        # バイアス磁場の大きさ
+bias = 0.1        # バイアス磁場の大きさ
 seed = 12345    # 乱数のシード
 
 n_steps = 100   # 取得データ数

@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 nx = 3
 ny = 3
 h = 0.5
-bias = 0
+bias = 0.1
 seed = 12345
-n_steps = 200
-total_time = 100
+n_steps = 100
+total_time = 50
 
 level = 10  # 取得する励起状態の数
 
