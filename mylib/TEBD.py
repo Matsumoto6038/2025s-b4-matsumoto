@@ -10,12 +10,14 @@ import copy
 def U_X(h,dt):
     sigma_x = np.array([[0,1],[1,0]])
     S, U = np.linalg.eig(sigma_x)
+    # alphaは、ハミルトニアンのhの符号を考慮して計算している
     alpha = 1j * dt * h * S
     U_X = U @ np.diag(np.exp(alpha)) @ U.conj().T
     return U_X
 
 def U_ZZ(J, dt):
-    beta = 1j * dt * J
+    # beta は、Jの符号を考慮して計算している
+    beta = 1j * dt * J 
     return np.diag(np.exp(beta * np.array([1,-1,-1,1])))
 
 # ZZにXを吸収させたユニタリを定義
@@ -25,6 +27,7 @@ def U_ZZX(h, J, dt):
     sigma_x = np.array([[0, 1], [1, 0]])
     H = J * np.kron(sigma_z, sigma_z) + h * np.kron(sigma_x, np.eye(2)) + h * np.kron(np.eye(2), sigma_x)
     S, U = np.linalg.eigh(H)
+    # gammaは、ハミルトニアンのhの符号を考慮して計算している
     gamma = 1j * dt * S
     U_H = U @ np.diag(np.exp(gamma)) @ U.conj().T
     return U_H
