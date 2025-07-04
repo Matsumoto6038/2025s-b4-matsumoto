@@ -164,14 +164,14 @@ def apply_bond_layer(
 
 def tebd1(
     mps,
-    h: float,                   # 磁場の強さ
-    J: float,                   # 相互作用定数
-    T: float,                   # 時間
-    n_steps: int,               # 時間ステップ数
-    maxbond: int = 100,         # 最大ボンド次元
-    cutoff: float = 1e-10,      # SVDの閾値
-    output_type: str = 'energy',# 演算子の種類 ('z' or 'x')
-    clone = False                # mpsをコピーするかどうか
+    h: float,                       # 磁場の強さ
+    J: float,                       # 相互作用定数
+    T: float,                       # 時間
+    n_steps: int,                   # 時間ステップ数
+    maxbond: int = 100,             # 最大ボンド次元
+    cutoff: float = 1e-10,          # SVDの閾値
+    output_type: str = 'energy',    # 演算子の種類 ('z' or 'x')
+    clone = False                   # mpsをコピーするかどうか
 ):  
     mps_copy = copy.deepcopy(mps) if clone else mps
     D = MPS.get_bondinfo(mps_copy)
