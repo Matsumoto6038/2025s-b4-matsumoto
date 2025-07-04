@@ -91,15 +91,16 @@ def mpo_ising_transverse(L,h,J):
     sigma_x = np.array([[0, 1], [1, 0]])
     I = np.eye(2)
     zero = np.zeros((2, 2))
-    O = np.array([[h*sigma_x, J*sigma_z, I]]).transpose(0,2,3,1)
+    O = np.array([[-h*sigma_x, -J*sigma_z, I]]).transpose(0,2,3,1)
     mpo.append(O)  # mpo[0]
     for i in range(1, L-1):
-        O = np.array([[I,zero,zero],[sigma_z,zero,zero],[h*sigma_x,J*sigma_z,I]]).transpose(0,2,3,1)
+        O = np.array([[I,zero,zero],[sigma_z,zero,zero],[-h*sigma_x,-J*sigma_z,I]]).transpose(0,2,3,1)
         mpo.append(O)
-    O = np.array([[I],[sigma_z],[h*sigma_x]]).transpose(0,2,3,1)
+    O = np.array([[I],[sigma_z],[-h*sigma_x]]).transpose(0,2,3,1)
     mpo.append(O)  # mpo[L-1]
     return mpo
 
+# 符号未調整
 def mpo_xxz(L,h,Delta):
     sigma_x = np.array([[0, 1], [1, 0]])
     sigma_y = np.array([[0, -1j], [1j, 0]])
@@ -130,6 +131,11 @@ def spin_glass_annealing(
     weight: float = 1.0,
     bias = None
     ):
+    
+    # H = - J Σ S_iS_j - h Σ S_i となるように符号を調整
+    h = -h
+    J_holiz = -J_holiz
+    J_vert = -J_vert
     
     h = (1-weight) * h
     J_vert = weight * J_vert
@@ -203,6 +209,14 @@ def spin_glass_triangle(
     if type(bias) is float:
         bias = np.array([bias] * (nx * ny))
     
+    # 符号を調整
+    h = -h
+    bias = -bias
+    J_holiz = -J_holiz  
+    J_vert = -J_vert    
+    J_diag = -J_diag
+    
+    # 重みをかける
     h = (1-weight) * h
     J_vert = weight * J_vert
     J_holiz = weight * J_holiz
@@ -398,14 +412,14 @@ def correlation(mps, i, j, operator='z'):
     z_ij = inner_product(mps, copy_mps)
     return z_ij - z_i * z_j # <z_i z_j> 
 
-# エネルギー期待値
+# mpoの期待値
 def energy(mps, mpo):
     Right = TDVP.initial_right_env(mps, mpo)
     Left = TDVP.initial_left_env(len(mpo))
     TDVP.update_left_env(mps, mpo, Left, 0)
     TDVP.update_left_env(mps, mpo, Left, 1)
     energy = np.einsum('abi,iab->',Left[2],Right[0])
-    return -energy.real
+    return energy.real
 
 # 出力を選択する関数
 def output(
