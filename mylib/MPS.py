@@ -43,6 +43,13 @@ def bits_to_mps(bits):
             raise ValueError("bits must be a string of '0' and '1'.")
     return mps
 
+# ランダムなビット列に対応するMPSを生成
+def random_cps(L):
+    bits = np.random.randint(0, 2, size=L)  
+    bits = ''.join(map(str, bits))  # ビット列を文字列に変換
+    mps = bits_to_mps(bits)  # ビット列からMPSを生成
+    return mps
+
 # 1/sqrt(2)(|0...0>+|1...1>)
 def GHZ_normalized(L):
     mps = []
