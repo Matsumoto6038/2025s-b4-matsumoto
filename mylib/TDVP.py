@@ -66,7 +66,7 @@ def sweep(
     if len(mps) != len(mpo):
         raise ValueError("Length of mps and mpo must be the same.")
     L = len(mps)
-    alpha = 1/2 * dt * 1.j
+    alpha = -1/2 * dt * 1.j
     
     for i in range(L-1):
         # mps[i]とmps[i+1]の縮約をとり整形する
