@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from collections import Counter
 import copy
 from mylib import TDVP,TEBD
 
@@ -80,6 +82,22 @@ def mps_random(L, D):
         A = np.random.rand(D[i], 2, D[i+1])+ 1j * np.random.rand(D[i], 2, D[i+1])
         mps.append(A)
     return mps
+
+def mps_random_rotated(bits, random_theta, random_phi):
+    L = len(bits)
+    mps = []
+    for i in range(L):
+        mps.append(random_angle_vector(random_theta[i], random_phi[i], bits[i]).reshape(1, 2, 1))
+    return mps
+
+def random_angle_vector(theta, phi, bit):
+    # ランダムな角度を生成する関数
+    if bit == '0':
+        return np.array([np.cos(theta/2), np.exp(1j * phi) * np.sin(theta/2)])
+    elif bit == '1':
+        return np.array([-np.sin(theta/2) * np.exp(-1j * phi), np.cos(theta/2)])
+    else:
+        raise ValueError("bit must be '0' or '1'.")
 
 # MPSのbond dimensionを取得する関数
 def get_bondinfo(mps):
@@ -479,3 +497,80 @@ def measure_all_bits(mps, check=True):
                 mps[i+1] = mps[i+1][:,1,:,:].reshape(1, 2, D[i+2])
                 mps[i+1] /= np.sqrt(1 - probability)
     return bits
+
+def sigma_random(theta, phi):
+    # ランダムな角度に基づいて測定用の行列を生成
+    return np.array([[np.cos(theta), np.sin(theta) * np.exp(-1j * phi)],
+                     [np.exp(1j * phi) * np.sin(theta), -np.cos(theta)]])
+
+def measure_all_bits_random(mps, random_theta=None, random_phi=None, check=True):
+    mps = copy.deepcopy(mps)
+    if check:
+        if not check_right_canonical(mps):
+            mps = right_canonical(mps)
+    L = len(mps)
+    D = get_bondinfo(mps)
+    # 測定結果を格納するための変数
+    bits = ''
+    # ランダムな角度を生成
+    if random_theta is None:
+        random_theta = np.array([np.random.uniform(0, np.pi) for _ in range(L)])
+    if random_phi is None:
+        random_phi = np.array([np.random.uniform(0, 2 * np.pi) for _ in range(L)])
+    for i in range(L):
+        # ランダムな角度に基づいて測定用の行列を生成
+        sigma_theta_phi = sigma_random(random_theta[i], random_phi[i])
+        # 測定確率を計算
+        probability = (1 + np.einsum('iaj, ab, ibj-> ', mps[i].conj(), sigma_theta_phi, mps[i]).real) / 2
+        xi = np.random.rand()
+        if xi < probability:
+            bits += '0'
+            if i < L-1:
+                ket = random_angle_vector(random_theta[i], random_phi[i], '0').conj()
+                mps[i] = np.einsum('a,iaj-> ij', ket, mps[i]).reshape(D[i+1])
+                mps[i+1] = np.einsum('i, iaj-> aj', mps[i], mps[i+1])
+                mps[i+1] = mps[i+1].reshape(1, 2, D[i+2])
+                mps[i+1] /= np.sqrt(probability)
+        else:
+            bits += '1'
+            if i < L-1:
+                ket = random_angle_vector(random_theta[i], random_phi[i], '1').conj()
+                mps[i] = np.einsum('a,iaj-> ij', ket, mps[i]).reshape(D[i+1])
+                mps[i+1] = np.einsum('i, iaj-> aj', mps[i], mps[i+1])
+                mps[i+1] = mps[i+1].reshape(1, 2, D[i+2])
+                mps[i+1] /= np.sqrt(1 - probability)
+    if random_theta is None or random_phi is None:
+        # ランダムな角度を生成した場合は、生成した角度も返す
+        return bits, random_theta, random_phi
+    else:
+        return bits
+
+def output_hist(mps, shots = 10000, threshold = 0):
+    mps = right_canonical(mps)  
+    results = [measure_all_bits(mps, check=False) for _ in range(shots)]
+
+    # 結果をヒストグラムで出力
+    counts = Counter(results)
+    total = sum(counts.values())
+    new_counter = Counter()
+    other_count = 0
+
+    for bitstring, count in counts.items():
+        if count / total < threshold:
+            other_count += count
+        else:
+            new_counter[bitstring] = count
+
+    if other_count > 0:
+        new_counter["others"] = other_count
+
+    labels = sorted(new_counter)
+    values = [new_counter[label] for label in labels]
+
+    plt.bar(labels, values)
+    plt.xlabel('Bitstring')
+    plt.ylabel('Counts')
+    plt.title(f'Measurement Results for {shots} Shots')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
