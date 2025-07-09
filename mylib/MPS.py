@@ -513,10 +513,10 @@ def measure_all_bits_random(mps, random_theta=None, random_phi=None, check=True)
     # 測定結果を格納するための変数
     bits = ''
     # ランダムな角度を生成
-    if random_theta is None:
+    if random_theta is None or random_phi is None:
         random_theta = np.array([np.random.uniform(0, np.pi) for _ in range(L)])
-    if random_phi is None:
         random_phi = np.array([np.random.uniform(0, 2 * np.pi) for _ in range(L)])
+        flag = True
     for i in range(L):
         # ランダムな角度に基づいて測定用の行列を生成
         sigma_theta_phi = sigma_random(random_theta[i], random_phi[i])
@@ -539,7 +539,7 @@ def measure_all_bits_random(mps, random_theta=None, random_phi=None, check=True)
                 mps[i+1] = np.einsum('i, iaj-> aj', mps[i], mps[i+1])
                 mps[i+1] = mps[i+1].reshape(1, 2, D[i+2])
                 mps[i+1] /= np.sqrt(1 - probability)
-    if random_theta is None or random_phi is None:
+    if flag:
         # ランダムな角度を生成した場合は、生成した角度も返す
         return bits, random_theta, random_phi
     else:
